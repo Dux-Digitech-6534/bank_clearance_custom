@@ -81,7 +81,7 @@ class CustomNewBankClearance {
 				<div class="cnbc-final" data-area="final_summary"></div>
 				<div class="cnbc-bulk" data-area="bulk">
 					<label>Set clearance date for selected rows:</label>
-					<input type="text" data-field="bulk_date" value="02/06/2026" placeholder="dd/mm/yyyy">
+					<input type="date" data-field="bulk_date" value="02/06/2026" placeholder="dd/mm/yyyy">
 					<button class="cnbc-btn cnbc-success" data-action="apply_date">Apply to Selected</button>
 					<span class="cnbc-count" data-area="bulk_count">0 selected</span>
 				</div>
@@ -407,12 +407,19 @@ class CustomNewBankClearance {
 	}
 
 	render_cards() {
-		const statement_total = flt(this.summary.bank_statement_balance);
 		const reconciled_total = flt(this.summary.reconciled_erp_balance);
-		const visible_entries = this.filtered_entries().length;
 		const actual_value = this.$("[data-field='actual_bank']").val();
-		const actual_bank = actual_value === undefined || actual_value === "" ? statement_total : Number(actual_value);
-		const diff = actual_bank - reconciled_total;
+
+		const has_actual_value = actual_value !== undefined && String(actual_value).trim() !== "";
+		const actual_bank = has_actual_value ? flt(actual_value) : 0;
+
+		const diff = has_actual_value ? actual_bank - reconciled_total : 0;
+		const erp_color = reconciled_total < 0 ? "red" : "green";
+
+		const visible_entries = this.filtered_entries().length;
+		// const actual_value = this.$("[data-field='actual_bank']").val();
+		// const actual_bank = actual_value === undefined || actual_value === "" ? statement_total : Number(actual_value);
+		// const diff = actual_bank - reconciled_total;
 		const cards = [
 			["Reconciled ERP Balance", this.money(reconciled_total), "", "circle", "green"],
 			["Bank Statement Balance", `<input class="cnbc-actual" data-field="actual_bank" value="${actual_value || ""}">`, ".", "bank", "amber"],
@@ -447,7 +454,7 @@ class CustomNewBankClearance {
 				<td class="cnbc-money-red">${row.withdrawal ? this.money(row.withdrawal) : "-"}</td>
 				<td>${voucher_link}</td>
 				<td><span class="cnbc-badge ${status_class}">${status_label}</span></td>
-				<td><input type="date" class="cnbc-date" data-clearance-date data-id="${row.id}" value="${row.clearance || ""}"></td>
+				<td><input type="date" class="cnbc-date" data-clearance-date data-id="${row.id}" value="${row.clearance || row.date || ""}"></td>
 				<td><span class="cnbc-doc-type">${action_label}</span></td>
 			</tr>`;
 		}).join("");
