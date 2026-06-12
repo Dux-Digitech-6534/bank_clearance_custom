@@ -19,7 +19,7 @@ class CustomNewBankClearance {
 		this.active_tab = "all";
 		this.selected = new Set();
 		this.entries = [];
-		this.page_size = 10;
+		this.page_size = 20;
 		this.current_page = 1;
 		this.render();
 		this.bind();
@@ -357,7 +357,25 @@ class CustomNewBankClearance {
 		const from_date = this.to_server_date(this.$("[data-field='from_date']").val());
 		const to_date = this.to_server_date(this.$("[data-field='to_date']").val());
 
-		return this.entries.filter((row) => {
+		// return this.entries.filter((row) => {
+		// 	if (row.date < from_date || row.date > to_date) return false;
+
+		// 	if (row.source === "POS") {
+		// 		if (!include_pos) return false;
+		// 	} else {
+		// 		if (!include_reconciled && row.status === "reconciled") return false;
+		// 	}
+
+		// 	if (this.active_tab === "pending" && row.status !== "pending") return false;
+		// 	if (this.active_tab === "date_set" && row.status !== "date_set") return false;
+		// 	if (this.active_tab === "cleared" && row.status !== "reconciled") return false;
+		// 	if (this.active_tab === "pos" && row.source !== "POS") return false;
+
+		// 	return `${row.date} ${row.type} ${row.description} ${row.deposit} ${row.withdrawal} ${row.voucher} ${row.status} ${row.source}`
+		// 		.toLowerCase()
+		// 		.includes(q);
+		// });
+		const rows = this.entries.filter((row) => {
 			if (row.date < from_date || row.date > to_date) return false;
 
 			if (row.source === "POS") {
@@ -375,6 +393,10 @@ class CustomNewBankClearance {
 				.toLowerCase()
 				.includes(q);
 		});
+
+		rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+		return rows;
 	}
 
 	refresh() {
@@ -399,11 +421,26 @@ class CustomNewBankClearance {
 		return rows.slice(start, start + this.page_size);
 	}
 
+	// change_page(action) {
+	// 	const total_pages = this.total_pages();
+	// 	if (action === "prev" && this.current_page > 1) this.current_page -= 1;
+	// 	if (action === "next" && this.current_page < total_pages) this.current_page += 1;
+	// 	this.refresh();
+	// }
 	change_page(action) {
 		const total_pages = this.total_pages();
+
+		if (action === "first") this.current_page = 1;
 		if (action === "prev" && this.current_page > 1) this.current_page -= 1;
 		if (action === "next" && this.current_page < total_pages) this.current_page += 1;
+		if (action === "last") this.current_page = total_pages;
+
 		this.refresh();
+
+		this.$(".cnbc-table-panel")[0]?.scrollIntoView({
+			behavior: "smooth",
+			block: "start",
+		});
 	}
 
 	render_cards() {
@@ -468,18 +505,37 @@ class CustomNewBankClearance {
 		this.render_pagination(filtered_rows.length);
 	}
 
+	// render_pagination(total_rows) {
+	// 	if (!total_rows) {
+	// 		this.$("[data-area='pagination']").html("");
+	// 		return;
+	// 	}
+	// 	const total_pages = this.total_pages(total_rows);
+	// 	this.$("[data-area='pagination']").html(`
+	// 		<button class="cnbc-btn" data-page-action="prev" ${this.current_page <= 1 ? "disabled" : ""}>Previous</button>
+	// 		<span class="cnbc-page-label">${this.current_page} / ${total_pages}</span>
+	// 		<button class="cnbc-btn" data-page-action="next" ${this.current_page >= total_pages ? "disabled" : ""}>Next</button>
+	// 	`);
+	// }
+
 	render_pagination(total_rows) {
-		if (!total_rows) {
-			this.$("[data-area='pagination']").html("");
-			return;
+			if (!total_rows) {
+				this.$("[data-area='pagination']").html("");
+				return;
+			}
+
+			const total_pages = this.total_pages(total_rows);
+
+			this.$("[data-area='pagination']").html(`
+				<button class="cnbc-btn" data-page-action="first" ${this.current_page <= 1 ? "disabled" : ""}>First</button>
+				<button class="cnbc-btn" data-page-action="prev" ${this.current_page <= 1 ? "disabled" : ""}>Previous</button>
+
+				<span class="cnbc-page-label">${this.current_page} / ${total_pages}</span>
+
+				<button class="cnbc-btn" data-page-action="next" ${this.current_page >= total_pages ? "disabled" : ""}>Next</button>
+				<button class="cnbc-btn" data-page-action="last" ${this.current_page >= total_pages ? "disabled" : ""}>Last</button>
+			`);
 		}
-		const total_pages = this.total_pages(total_rows);
-		this.$("[data-area='pagination']").html(`
-			<button class="cnbc-btn" data-page-action="prev" ${this.current_page <= 1 ? "disabled" : ""}>Previous</button>
-			<span class="cnbc-page-label">${this.current_page} / ${total_pages}</span>
-			<button class="cnbc-btn" data-page-action="next" ${this.current_page >= total_pages ? "disabled" : ""}>Next</button>
-		`);
-	}
 
 	update_selected_ui() {
 		const count = this.selected.size;
