@@ -64,13 +64,14 @@ class CustomNewBankClearance {
 					<div class="cnbc-filter-grid">
 						<div class="cnbc-field"><label>Company</label><select data-field="company"><option value="">Loading Companies...</option></select></div>
 						<div class="cnbc-field"><label>Ledger Account / Account</label><select data-field="ledger"><option value="">Select Company first</option></select></div>
-						<div class="cnbc-field"><label>Bank Account</label><select data-field="bank_account"><option value="">Select Account first</option></select></div>
+						
 						<div class="cnbc-field"><label>From Date</label><input type="date" data-field="from_date"></div>
 						<div class="cnbc-field"><label>To Date</label><input type="date" data-field="to_date"></div>
 						<div class="cnbc-filter-actions">
-							<button class="cnbc-btn cnbc-filter-action" data-action="clear_filter_fields">${this.icon("x")} Clear Filters</button>
+							
 							<button class="cnbc-btn cnbc-primary cnbc-filter-action" data-action="get_entries">${this.icon("refresh")} Get Entries</button>
 						</div>
+						<button class="cnbc-btn cnbc-filter-action" data-action="clear_filter_fields">${this.icon("x")} Clear Filters</button>
 					</div>
 					<div class="cnbc-toggles">
 						<label class="cnbc-toggle"><input type="checkbox" data-field="include_reconciled"> Include Reconciled Entries</label>
@@ -81,7 +82,7 @@ class CustomNewBankClearance {
 				<div class="cnbc-final" data-area="final_summary"></div>
 				<div class="cnbc-bulk" data-area="bulk">
 					<label>Set clearance date for selected rows:</label>
-					<input type="date" data-field="bulk_date" value="02/06/2026" placeholder="dd/mm/yyyy">
+					<input type="date" data-field="bulk_date" >
 					<button class="cnbc-btn cnbc-success" data-action="apply_date">Apply to Selected</button>
 					<span class="cnbc-count" data-area="bulk_count">0 selected</span>
 				</div>
@@ -247,7 +248,7 @@ class CustomNewBankClearance {
 		return Boolean(
 			this.$("[data-field='company']").val()
 			&& this.$("[data-field='ledger']").val()
-			&& this.$("[data-field='bank_account']").val()
+			// && this.$("[data-field='bank_account']").val()
 			&& this.$("[data-field='from_date']").val()
 			&& this.$("[data-field='to_date']").val()
 		);
@@ -284,7 +285,7 @@ class CustomNewBankClearance {
 			include_reconciled: this.$("[data-field='include_reconciled']").is(":checked"),
 			include_pos: this.$("[data-field='include_pos']").is(":checked"),
 		};
-		if (!args.company || !args.account || !args.bank_account) {
+		if (!args.company || !args.account ) {
 			if (options.quiet) return;
 			frappe.msgprint(__("Please select Company, Account and Bank Account."));
 			return;
@@ -345,7 +346,7 @@ class CustomNewBankClearance {
 			payment_document: row.payment_document || row.voucher_type || "",
 			status: row.clearance_date || status === "cleared" || status === "reconciled" ? "reconciled" : "pending",
 			source: row.source === "POS" || row.is_pos ? "POS" : row.source || row.row_type || "ERP Entry",
-			clearance: row.clearance || row.clearance_date || "",
+			clearance: row.clearance || row.clearance_date || row.date || row.posting_date || "",
 		};
 	}
 
@@ -549,7 +550,7 @@ class CustomNewBankClearance {
 		if (!this.fetched) return frappe.msgprint(__("Please click Get Entries first."));
 		if (!this.selected.size) return frappe.msgprint(__("Please select at least one row."));
 		const bulk_date = this.to_server_date(this.$("[data-field='bulk_date']").val());
-		if (!bulk_date) return frappe.msgprint(__("Please set a clearance date for the selected row(s)."));
+		// if (!bulk_date) return frappe.msgprint(__("Please set a clearance date for the selected row(s)."));
 		const selected_rows = this.entries.filter((row) => this.selected.has(row.id));
 		const rows = selected_rows.filter((row) => row.status !== "reconciled");
 		if (!rows.length) return frappe.msgprint(__("Selected rows are already reconciled."));
@@ -624,11 +625,11 @@ class CustomNewBankClearance {
 			voucher_no: row.voucher_no || row.voucher,
 			payment_document: row.voucher_type || row.payment_document,
 			payment_entry: row.voucher_no || row.voucher,
-			clearance_date: this.to_server_date(row.clearance),
+			clearance_date: this.to_server_date(row.clearance || row.clearance_date || row.date),
 		})).filter((row) => row.voucher_type && row.voucher_no && row.clearance_date);
 
 		if (!payload.length) {
-			frappe.msgprint(__("Please set a clearance date for the selected row(s)."));
+			frappe.msgprint(__("No valid rows found to reconcile."));
 			return;
 		}
 
