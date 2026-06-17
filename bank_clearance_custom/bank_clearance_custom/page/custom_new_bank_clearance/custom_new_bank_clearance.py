@@ -12,25 +12,42 @@ def get_companies():
 	return frappe.get_all("Company", fields=["name"], order_by="name")
 
 
+# @frappe.whitelist()
+# def get_accounts_for_company(company):
+# 	if not company:
+# 		return []
+
+# 	rows = frappe.get_all(
+# 		"Bank Account",
+# 		filters={"company": company, "account": ["is", "set"]},
+# 		fields=["account"],
+# 		order_by="account",
+# 	)
+# 	seen = set()
+# 	accounts = []
+# 	for row in rows:
+# 		account = row.get("account")
+# 		if account and account not in seen:
+# 			seen.add(account)
+# 			accounts.append({"account": account})
+# 	return accounts
+
+
 @frappe.whitelist()
 def get_accounts_for_company(company):
 	if not company:
 		return []
 
-	rows = frappe.get_all(
-		"Bank Account",
-		filters={"company": company, "account": ["is", "set"]},
-		fields=["account"],
-		order_by="account",
+	return frappe.get_all(
+		"Account",
+		filters={
+			"company": company,
+			"is_group": 0,
+			"account_type": ["in", ["Bank", "Cash"]],
+		},
+		fields=["name as account"],
+		order_by="name",
 	)
-	seen = set()
-	accounts = []
-	for row in rows:
-		account = row.get("account")
-		if account and account not in seen:
-			seen.add(account)
-			accounts.append({"account": account})
-	return accounts
 
 
 @frappe.whitelist()
