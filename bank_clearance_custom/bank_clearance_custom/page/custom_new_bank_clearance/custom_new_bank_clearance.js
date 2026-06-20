@@ -54,7 +54,7 @@ class CustomNewBankClearance {
 				.cnbc-field input,.cnbc-field select{width:100%;height:35px;border:1px solid var(--line);background:transparent!important;border-radius:8px;padding:0 11px;color:var(--text);font-size:13px;outline:none;font-family:inherit;box-shadow:none!important}
 				.cnbc-field input[type="date"]{min-width:100%;display:block;background:transparent!important}
 				.cnbc-field input:focus,.cnbc-field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(74,127,165,.14)!important}
-				.cnbc-link-control,.cnbc-link-control .form-group,.cnbc-link-control .control-input-wrapper,.cnbc-link-control .link-field,.cnbc-link-control .awesomplete{background:transparent!important;box-shadow:none!important;border:0!important;margin:0!important;top:8px}
+				.cnbc-link-control,.cnbc-link-control .form-group,.cnbc-link-control .control-input-wrapper,.cnbc-link-control .link-field,.cnbc-link-control .awesomplete{background:transparent!important;box-shadow:none!important;border:0!important;margin:0!important;}
 				.cnbc-link-control .control-label{display:none!important}
 				.cnbc-link-control .form-control,.cnbc-link-control input,.cnbc-link-control .input-with-feedback{width:100%!important;height:35px!important;background:transparent!important;border:1px solid var(--line)!important;border-radius:8px!important;box-shadow:none!important;font-size:13px!important;color:var(--text)!important;padding:0 11px!important;}
 				.cnbc-link-control .form-control:focus,.cnbc-link-control input:focus,.cnbc-link-control .input-with-feedback:focus{border-color:var(--blue)!important;box-shadow:0 0 0 3px rgba(74,127,165,.14)!important}
