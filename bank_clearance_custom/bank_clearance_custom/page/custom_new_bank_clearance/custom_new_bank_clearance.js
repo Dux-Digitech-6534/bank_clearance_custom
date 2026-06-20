@@ -588,7 +588,7 @@ class CustomNewBankClearance {
 		const visible_entries = this.filtered_entries().length;
 
 		const cards = [
-			["Reconciled ERP Balance", this.money(reconciled_total), "Opening + reconciled movement", "circle", erp_color],
+			["Reconciled ERP Balance", this.money(reconciled_total), "", "circle", erp_color],
 			["Bank Statement Balance", `<input class="cnbc-actual" data-field="actual_bank" value="${frappe.utils.escape_html(actual_value || "")}">`, ".", "bank", "amber"],
 			["Difference Amount", this.money(diff, true), "", "alert", diff === 0 ? "green" : "red"],
 			["Visible Entries", visible_entries, "", "list", "violet"],
