@@ -65,6 +65,21 @@ class CustomNewBankClearance {
 				.cnbc-table-panel{overflow:hidden;margin-top:16px}.cnbc-toolbar{height:61px;display:flex;align-items:center;gap:10px;padding:0 18px;border-bottom:1px solid var(--line)}.cnbc-search{height:34px;min-width:300px;border:1px solid var(--line);border-radius:8px;padding:0 12px;background:var(--bg);font-family:inherit}.cnbc-pill{height:30px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--text2);padding:0 14px;font-size:12px;cursor:pointer;font-family:inherit}.cnbc-pill.on{background:var(--blue);border-color:var(--blue);color:#fff}.cnbc-toolbar-spacer{flex:1}.cnbc-table-wrap{overflow:auto}.cnbc-table{width:100%;min-width:1240px;border-collapse:collapse;background:#fff}.cnbc-table th{height:42px;background:var(--muted);border-bottom:1px solid var(--line);color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:0 14px;white-space:nowrap}.cnbc-table td{border-bottom:1px solid var(--line);padding:11px 14px;vertical-align:middle;color:var(--text)}.cnbc-table tr:hover{background:rgba(74,127,165,.05)}.cnbc-table tr.sel{background:rgba(74,127,165,.10)}
 				.cnbc-table tr.cnbc-opening-row{background:rgba(160,120,64,.08)}.cnbc-table tr.cnbc-opening-row td{border-bottom:1px solid hsla(35, 47%, 51%, 0.24)}.cnbc-table tr.cnbc-opening-row:hover{background:rgba(160,120,64,.12)}.cnbc-opening-title{font-weight:700;color:var(--amber)}
 				.cnbc-check{width:16px;height:16px;border:1.5px solid var(--line2);border-radius:4px;appearance:none;-webkit-appearance:none;background:#fff!important;background-image:none!important;cursor:pointer;position:relative}.cnbc-check:disabled{opacity:.45;cursor:not-allowed}.cnbc-check:checked{background:#fff!important;background-image:none!important;border-color:var(--blue)}.cnbc-check:checked:after{content:"";position:absolute;top:1px;left:4px;width:5px;height:9px;border:2px solid var(--blue);border-top:none;border-left:none;transform:rotate(42deg)}.cnbc-doc-type{font-size:11px;color:var(--text3);font-weight:500}.cnbc-link{display:inline-block;color:var(--blue);font-family:inherit;font-size:12px;font-weight:500}.cnbc-money{display:inline-block;white-space:nowrap}.cnbc-money-green{color:var(--green);font-weight:500}.cnbc-money-red{color:var(--red);font-weight:500}.cnbc-badge{display:inline-flex;align-items:center;height:34px;border-radius:999px;padding:0 9px;font-size:11px;font-weight:500}.b-ok{background:var(--green2);border:1px solid rgba(74,140,110,.24);color:var(--green)}.b-pending{background:var(--amber2);border:1px solid rgba(160,120,64,.24);color:var(--amber)}.b-date{background:var(--blue2);border:1px solid rgba(74,127,165,.24);color:var(--blue)}.b-pos{background:var(--violet2);border:1px solid rgba(111,91,167,.24);color:var(--violet)}.b-dr{background:var(--red2);border:1px solid rgba(158,74,74,.24);color:var(--red)}.cnbc-date{width:100%;min-width:150px;height:32px;box-sizing:border-box;border:1px solid var(--line);border-radius:7px;padding:0 9px;background:#fff;font-family:inherit;font-size:12px}.cnbc-foot{min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px;color:var(--text3);font-size:12px;flex-wrap:wrap}.cnbc-page-controls{margin-left:auto;display:flex;align-items:center;gap:6px}.cnbc-page-label{color:var(--text2);font-weight:500}.cnbc-action-link{border:0;background:transparent;color:var(--red);font-size:12px;font-weight:600;padding:0;cursor:pointer;font-family:inherit}.cnbc-action-link:hover{text-decoration:underline}.cnbc-final{display:none;margin-bottom:14px;background:var(--green2);border:1px solid rgba(74,140,110,.24);border-radius:12px;padding:12px 14px;color:var(--green);font-weight:600}.cnbc-final.show{display:block}
+				.cnbc-actual-wrap {
+					display: flex;
+						align-items: center;
+						gap: 4px;
+						border-bottom: 1px solid var(--line);
+					}
+
+				.cnbc-actual-symbol {
+					color: var(--amber);
+					font-weight: 600;
+				}
+
+				.cnbc-actual {
+					border-bottom: 0 !important;
+				}
 				@media(max-width:1200px){.cnbc-filter-grid{grid-template-columns:repeat(2,minmax(190px,1fr))}.cnbc-kpis{grid-template-columns:repeat(2,minmax(180px,1fr))}}@media(max-width:700px){.cnbc{padding:16px 12px}.cnbc-top{display:block}.cnbc-actions{justify-content:flex-start;margin-top:14px}.cnbc-filter-grid{grid-template-columns:1fr}.cnbc-kpis{grid-template-columns:1fr}.cnbc-search{min-width:0;flex:1}.cnbc-toolbar{height:auto;padding:14px;flex-wrap:wrap}.cnbc-bulk{align-items:flex-start}.cnbc-count{margin-left:0}}
 			</style>
 
@@ -211,7 +226,16 @@ class CustomNewBankClearance {
 			this.unreconcile_row(id);
 		});
 
-		root.on("change", "[data-field='actual_bank']", () => this.refresh());
+		// root.on("change", "[data-field='actual_bank']", () => this.refresh());
+		root.on("input", "[data-field='actual_bank']", () => {
+			this.update_difference_amount_only();
+		});
+
+		root.on("blur", "[data-field='actual_bank']", (event) => {
+			const input = event.currentTarget;
+			input.value = this.format_input_amount(input.value);
+			this.update_difference_amount_only();
+		});
 
 		root.on("change", "[data-field='from_date'], [data-field='to_date']", () => {
 			this.reset_page();
@@ -253,7 +277,9 @@ class CustomNewBankClearance {
 			if (!row || row.is_opening_entry) return;
 
 			event.currentTarget.checked ? this.selected.add(id) : this.selected.delete(id);
-			this.update_selected_ui();
+
+			// Important: refresh cards so Difference Amount changes immediately.
+			this.refresh();
 		});
 
 		root.on("change", "[data-clearance-date]", (event) => {
@@ -447,7 +473,6 @@ class CustomNewBankClearance {
 		return {
 			id: index + 1,
 			date: row.date || row.posting_date || "",
-			// type: is_opening_entry ? (deposit ? "Debit" : "Credit") : row.type || (deposit ? "Deposit" : "Withdrawal"),
 			type: is_opening_entry ? (deposit ? "Debit" : "Credit") : row.type || (deposit ? "Deposit" : "Withdrawal"),
 			description: is_opening_entry ? "B/F Opening Bank Balance" : row.description || row.party || row.payment_document || "",
 			reference_no: is_opening_entry ? "" : reference_no,
@@ -574,27 +599,98 @@ class CustomNewBankClearance {
 		});
 	}
 
+	get_selected_preview_balance() {
+		const reconciled_total = flt(this.summary.reconciled_erp_balance);
+
+		const selected_rows = this.entries.filter((row) => {
+			return this.selected.has(row.id)
+				&& !row.is_opening_entry
+				&& row.status !== "reconciled";
+		});
+
+		const selected_deposit = selected_rows.reduce((sum, row) => {
+			return sum + flt(row.deposit);
+		}, 0);
+
+		const selected_withdrawal = selected_rows.reduce((sum, row) => {
+			return sum + flt(row.withdrawal);
+		}, 0);
+
+		return reconciled_total + selected_deposit - selected_withdrawal;
+	}
+
 	render_cards() {
 		const reconciled_total = flt(this.summary.reconciled_erp_balance);
+		const preview_total = this.get_selected_preview_balance();
+		// const actual_value = this.$("[data-field='actual_bank']").val();
+
+		// const has_actual_value = actual_value !== undefined && String(actual_value).trim() !== "";
+		// const actual_bank = has_actual_value ? flt(actual_value) : 0;
+
 		const actual_value = this.$("[data-field='actual_bank']").val();
 
 		const has_actual_value = actual_value !== undefined && String(actual_value).trim() !== "";
-		const actual_bank = has_actual_value ? flt(actual_value) : 0;
+		const actual_bank = has_actual_value ? this.parse_amount(actual_value) : 0;
 
-		let diff = has_actual_value ? actual_bank - reconciled_total : 0;
+		// let diff = has_actual_value ? actual_bank - preview_total : 0;
+		let diff = has_actual_value ? preview_total - actual_bank : 0;
 		if (Math.abs(diff) < 0.005) diff = 0;
 
-		const erp_color = reconciled_total < 0 ? "red" : "green";
+		// const erp_color = reconciled_total < 0 ? "red" : "green";
+		const erp_display_total = this.selected.size ? preview_total : reconciled_total;
+		const erp_color = erp_display_total < 0 ? "red" : "green";
 		const visible_entries = this.filtered_entries().length;
 
 		const cards = [
-			["Reconciled ERP Balance", this.money(reconciled_total), "", "circle", erp_color],
-			["Bank Statement Balance", `<input class="cnbc-actual" data-field="actual_bank" value="${frappe.utils.escape_html(actual_value || "")}">`, ".", "bank", "amber"],
-			["Difference Amount", this.money(diff, true), "", "alert", diff === 0 ? "green" : "red"],
+			// ["Reconciled ERP Balance", this.money(reconciled_total), "", "circle", erp_color],
+			[
+				"Reconciled ERP Balance",
+				this.money(erp_display_total),
+				this.selected.size ? "" : "",
+				"circle",
+				erp_color
+			],
+						// ["Bank Statement Balance", `<input class="cnbc-actual" data-field="actual_bank" value="${frappe.utils.escape_html(actual_value || "")}">`, ".", "bank", "amber"],
+			// ["Bank Statement Balance", `<input class="cnbc-actual" data-field="actual_bank" value="${frappe.utils.escape_html(actual_value || "")}">`, ".", "bank", "amber"],
+			[
+				"Bank Statement Balance",
+				`<div class="cnbc-actual-wrap">
+					<span class="cnbc-actual-symbol">₹</span>
+					<input class="cnbc-actual" data-field="actual_bank" value="${frappe.utils.escape_html(actual_value || "")}">
+				</div>`,
+				".",
+				"bank",
+				"amber"
+			],
+			[
+				"Difference Amount",
+				`<span data-area="difference_amount">${this.money(diff, true)}</span>`,
+				this.selected.size ? "" : "",
+				"alert",
+				diff < 0 ? "red" : "green"
+			],
 			["Visible Entries", visible_entries, "", "list", "violet"],
 		];
 
 		this.$("[data-area='summary_cards']").html(cards.map((card) => this.card_html(card)).join(""));
+	}
+    
+    update_difference_amount_only() {
+		const preview_total = this.get_selected_preview_balance();
+		const actual_value = this.$("[data-field='actual_bank']").val();
+
+		const has_actual_value = actual_value !== undefined && String(actual_value).trim() !== "";
+		const actual_bank = has_actual_value ? this.parse_amount(actual_value) : 0;
+
+		let diff = has_actual_value ? preview_total - actual_bank : 0;
+		if (Math.abs(diff) < 0.005) diff = 0;
+
+		const $diff_card = this.$("[data-area='difference_amount']").closest(".cnbc-kpi");
+
+		$diff_card.removeClass("green red");
+		$diff_card.addClass(diff < 0 ? "red" : "green");
+
+		this.$("[data-area='difference_amount']").html(this.money(diff, true));
 	}
 
 	card_html(card) {
@@ -693,9 +789,6 @@ class CustomNewBankClearance {
 			return row.status === "reconciled" ? sum + flt(row.withdrawal) : sum;
 		}, 0);
 
-		const visible_deposit = transaction_rows.reduce((sum, row) => sum + flt(row.deposit), 0);
-		const visible_withdrawal = transaction_rows.reduce((sum, row) => sum + flt(row.withdrawal), 0);
-
 		const reconciled_balance = opening + reconciled_deposit - reconciled_withdrawal;
 
 		const start = filtered_rows.length ? (this.current_page - 1) * this.page_size + 1 : 0;
@@ -707,7 +800,6 @@ class CustomNewBankClearance {
 
 		this.$("[data-area='totals']").html(
 			`Opening ${this.money(opening)} + Deposit ${this.money(reconciled_deposit)} - Withdrawal ${this.money(reconciled_withdrawal)} = Reconciled ERP Balance ${this.money(reconciled_balance)}`
-			
 		);
 
 		this.render_pagination(filtered_rows.length);
@@ -829,88 +921,79 @@ class CustomNewBankClearance {
 	}
 
 	async save_clearance_dates(rows) {
-	const payload = rows
-		.filter((row) => !row.is_opening_entry)
-		.map((row) => ({
-			voucher_type: row.voucher_type || row.payment_document,
-			voucher_no: row.voucher_no || row.voucher,
-			payment_document: row.voucher_type || row.payment_document,
-			payment_entry: row.voucher_no || row.voucher,
-			reference_no: row.reference_no || row.cheque_no || "",
-			cheque_no: row.cheque_no || row.reference_no || "",
-			clearance_date: this.to_server_date(row.clearance || row.clearance_date || row.date),
-			is_opening_entry: row.is_opening_entry ? 1 : 0,
-		}))
-		.filter((row) => row.voucher_type && row.voucher_no);
+		const payload = rows
+			.filter((row) => !row.is_opening_entry)
+			.map((row) => ({
+				voucher_type: row.voucher_type || row.payment_document,
+				voucher_no: row.voucher_no || row.voucher,
+				payment_document: row.voucher_type || row.payment_document,
+				payment_entry: row.voucher_no || row.voucher,
+				reference_no: row.reference_no || row.cheque_no || "",
+				cheque_no: row.cheque_no || row.reference_no || "",
+				clearance_date: this.to_server_date(row.clearance || row.clearance_date || row.date),
+				is_opening_entry: row.is_opening_entry ? 1 : 0,
+			}))
+			.filter((row) => row.voucher_type && row.voucher_no);
 
-	if (!payload.length) {
-		frappe.msgprint(__("No valid rows found to reconcile."));
-		return;
+		if (!payload.length) {
+			frappe.msgprint(__("No valid rows found to reconcile."));
+			return;
+		}
+
+		const result = await this.call("update_gl_clearance_dates", {
+			company: this.get_company_value(),
+			account: this.get_account_value(),
+			entries: JSON.stringify(payload),
+		});
+
+		this.selected.clear();
+		this.clear_final_message();
+		await this.get_entries({ quiet: true });
+
+		const message = (result && result.message) || __("Rows reconciled successfully.");
+		this.$("[data-area='final_summary']").addClass("show").html(frappe.utils.escape_html(message));
+		frappe.show_alert({ message, indicator: "green" }, 4);
 	}
-
-	const result = await this.call("update_gl_clearance_dates", {
-		company: this.get_company_value(),
-		account: this.get_account_value(),
-		entries: JSON.stringify(payload),
-	});
-
-	this.selected.clear();
-	this.clear_final_message();
-	await this.get_entries({ quiet: true });
-
-	const message = (result && result.message) || __("Rows reconciled successfully.");
-	this.$("[data-area='final_summary']").addClass("show").html(frappe.utils.escape_html(message));
-	frappe.show_alert({ message, indicator: "green" }, 4);
-}
-
 
 	async unreconcile_row(id) {
-	const row = this.entries.find((entry) => entry.id === id);
+		const row = this.entries.find((entry) => entry.id === id);
 
-	if (!row || row.is_opening_entry) {
-		frappe.msgprint(__("Opening row cannot be unreconciled."));
-		return;
-	}
-
-	if (row.status !== "reconciled") {
-		frappe.msgprint(__("Only reconciled rows can be unreconciled."));
-		return;
-	}
-
-	frappe.confirm(
-		__("Are you sure you want to unreconcile this entry?"),
-		async () => {
-			const result = await this.call("unreconcile_entries", {
-				entries: JSON.stringify([{
-					voucher_type: row.voucher_type || row.payment_document,
-					voucher_no: row.voucher_no || row.voucher,
-					payment_document: row.voucher_type || row.payment_document,
-					payment_entry: row.voucher_no || row.voucher,
-					reference_no: row.reference_no || row.cheque_no || "",
-					cheque_no: row.cheque_no || row.reference_no || "",
-					is_opening_entry: row.is_opening_entry ? 1 : 0,
-				}]),
-			});
-
-			this.clear_final_message();
-			await this.get_entries({ quiet: true });
-
-			const message = (result && result.message) || __("Entry unreconciled successfully.");
-			this.$("[data-area='final_summary']")
-				.addClass("show")
-				.html(frappe.utils.escape_html(message));
-
-			frappe.show_alert({ message, indicator: "green" }, 4);
+		if (!row || row.is_opening_entry) {
+			frappe.msgprint(__("Opening row cannot be unreconciled."));
+			return;
 		}
-	);
 
+		if (row.status !== "reconciled") {
+			frappe.msgprint(__("Only reconciled rows can be unreconciled."));
+			return;
+		}
 
-		// this.clear_final_message();
-		// await this.get_entries({ quiet: true });
+		frappe.confirm(
+			__("Are you sure you want to unreconcile this entry?"),
+			async () => {
+				const result = await this.call("unreconcile_entries", {
+					entries: JSON.stringify([{
+						voucher_type: row.voucher_type || row.payment_document,
+						voucher_no: row.voucher_no || row.voucher,
+						payment_document: row.voucher_type || row.payment_document,
+						payment_entry: row.voucher_no || row.voucher,
+						reference_no: row.reference_no || row.cheque_no || "",
+						cheque_no: row.cheque_no || row.reference_no || "",
+						is_opening_entry: row.is_opening_entry ? 1 : 0,
+					}]),
+				});
 
-		// const message = (result && result.message) || __("Entry unreconciled successfully.");
-		// this.$("[data-area='final_summary']").addClass("show").html(frappe.utils.escape_html(message));
-		// frappe.show_alert({ message, indicator: "green" }, 4);
+				this.clear_final_message();
+				await this.get_entries({ quiet: true });
+
+				const message = (result && result.message) || __("Entry unreconciled successfully.");
+				this.$("[data-area='final_summary']")
+					.addClass("show")
+					.html(frappe.utils.escape_html(message));
+
+				frappe.show_alert({ message, indicator: "green" }, 4);
+			}
+		);
 	}
 
 	clear_final_message() {
@@ -963,6 +1046,24 @@ class CustomNewBankClearance {
 		return match ? `${match[3]}-${match[2]}-${match[1]}` : text;
 	}
 
+    parse_amount(value) {
+		return Number(String(value || "").replace(/,/g, "")) || 0;
+	}
+
+	format_input_amount(value) {
+		const text = String(value || "").replace(/,/g, "");
+
+		if (!text) return "";
+
+		const parts = text.split(".");
+		const integer_part = parts[0];
+		const decimal_part = parts.length > 1 ? "." + parts[1].slice(0, 2) : "";
+
+		const formatted_integer = Number(integer_part || 0).toLocaleString("en-IN");
+
+		return formatted_integer + decimal_part;
+	}
+
 	money(value, signed = false) {
 		let number = Number(value || 0);
 
@@ -978,6 +1079,8 @@ class CustomNewBankClearance {
 
 		return `<span class="cnbc-money">${sign}&#8377; ${amount}</span>`;
 	}
+
+	
 
 	strip_html(value) {
 		return String(value || "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ");
