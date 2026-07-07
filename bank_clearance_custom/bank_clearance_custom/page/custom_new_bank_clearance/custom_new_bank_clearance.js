@@ -22,7 +22,8 @@ class CustomNewBankClearance {
 		this.active_tab = "all";
 		this.selected = new Set();
 		this.entries = [];
-		this.page_size = 20;
+		this.page_size = 50;
+		this.page_sizes = [50, 100, 500, 2500];
 		this.current_page = 1;
 		this.company_control = null;
 		this.account_control = null;
@@ -79,6 +80,69 @@ class CustomNewBankClearance {
 
 				.cnbc-actual {
 					border-bottom: 0 !important;
+				}
+			    
+			    .cnbc-foot {
+					min-height: 70px;
+					display: grid;
+					grid-template-columns: 1fr 2fr 1.4fr;
+					align-items: center;
+					gap: 12px;
+					padding: 10px 18px;
+					color: var(--text3);
+					font-size: 12px;
+				}
+
+				.cnbc-foot-left {
+					display: flex;
+					align-items: center;
+					justify-content: flex-start;
+				}
+
+				.cnbc-foot-center {
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					text-align: center;
+				}
+
+				.cnbc-foot-right {
+					display: flex;
+					flex-direction: column;
+					align-items: flex-end;
+					gap: 8px;
+				}
+
+				.cnbc-page-size-controls {
+					display: flex;
+					align-items: center;
+					gap: 6px;
+				}
+
+				.cnbc-page-controls {
+					display: flex;
+					align-items: center;
+					gap: 6px;
+					margin-left: 0;
+				}
+
+				.cnbc-page-size-btn {
+					height: 30px;
+					min-width: 44px;
+					border: 1px solid var(--line);
+					border-radius: 7px;
+					background: #fff;
+					color: var(--text2);
+					font-size: 12px;
+					font-family: inherit;
+					cursor: pointer;
+					padding: 0 10px;
+				}
+
+				.cnbc-page-size-btn.on {
+					background: var(--blue);
+					border-color: var(--blue);
+					color: #fff;
 				}
 				@media(max-width:1200px){.cnbc-filter-grid{grid-template-columns:repeat(2,minmax(190px,1fr))}.cnbc-kpis{grid-template-columns:repeat(2,minmax(180px,1fr))}}@media(max-width:700px){.cnbc{padding:16px 12px}.cnbc-top{display:block}.cnbc-actions{justify-content:flex-start;margin-top:14px}.cnbc-filter-grid{grid-template-columns:1fr}.cnbc-kpis{grid-template-columns:1fr}.cnbc-search{min-width:0;flex:1}.cnbc-toolbar{height:auto;padding:14px;flex-wrap:wrap}.cnbc-bulk{align-items:flex-start}.cnbc-count{margin-left:0}}
 			</style>
@@ -164,9 +228,18 @@ class CustomNewBankClearance {
 					</div>
 
 					<div class="cnbc-foot">
-						<span data-area="row_info">Showing 0 entries</span>
-						<span data-area="totals">Deposit ${this.money(0)} - Withdrawal ${this.money(0)}</span>
-						<span class="cnbc-page-controls" data-area="pagination"></span>
+						<div class="cnbc-foot-left">
+							<span data-area="row_info">Showing 0 entries</span>
+						</div>
+
+						<div class="cnbc-foot-center">
+							<span data-area="totals">Deposit ${this.money(0)} - Withdrawal ${this.money(0)}</span>
+						</div>
+
+						<div class="cnbc-foot-right">
+							<div class="cnbc-page-size-controls" data-area="page_size_controls"></div>
+							<div class="cnbc-page-controls" data-area="pagination"></div>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -221,10 +294,15 @@ class CustomNewBankClearance {
 		root.on("click", "[data-action='clear_filter_fields']", () => this.clear_filter_fields());
 		root.on("click", "[data-action='export']", () => this.export_csv());
 
-		root.on("click", "[data-action='unreconcile_row']", (event) => {
-			const id = Number($(event.currentTarget).data("id"));
-			this.unreconcile_row(id);
+		root.on("click", "[data-page-size]", (event) => {
+			this.change_page_size($(event.currentTarget).data("page-size"));
 		});
+
+		root.on("click", "[data-page-action]", (event) => {
+			this.change_page($(event.currentTarget).data("page-action"));
+		});
+
+
 
 		// root.on("change", "[data-field='actual_bank']", () => this.refresh());
 		root.on("input", "[data-field='actual_bank']", () => {
@@ -268,7 +346,9 @@ class CustomNewBankClearance {
 			this.refresh();
 		});
 
-		root.on("click", "[data-page-action]", (event) => this.change_page($(event.currentTarget).data("page-action")));
+		root.on("click", "[data-page-size]", (event) => {
+			this.change_page_size($(event.currentTarget).data("page-size"));
+		});
 
 		root.on("change", "[data-row-select]", (event) => {
 			const id = Number($(event.currentTarget).data("id"));
@@ -802,9 +882,30 @@ class CustomNewBankClearance {
 			`Opening ${this.money(opening)} + Deposit ${this.money(reconciled_deposit)} - Withdrawal ${this.money(reconciled_withdrawal)} = Reconciled ERP Balance ${this.money(reconciled_balance)}`
 		);
 
+		this.render_page_size_controls();
 		this.render_pagination(filtered_rows.length);
+			}
+    render_page_size_controls() {
+		const sizes = this.page_sizes || [50, 100, 500, 2500];
+
+		const html = sizes.map((size) => {
+			return `
+				<button
+					class="cnbc-page-size-btn ${this.page_size === size ? "on" : ""}"
+					data-page-size="${size}">
+					${size}
+				</button>
+			`;
+		}).join("");
+
+		this.$("[data-area='page_size_controls']").html(html);
 	}
 
+	change_page_size(size) {
+		this.page_size = parseInt(size, 10) || 50;
+		this.current_page = 1;
+		this.refresh();
+	}
 	render_pagination(total_rows) {
 		if (!total_rows) {
 			this.$("[data-area='pagination']").html("");
