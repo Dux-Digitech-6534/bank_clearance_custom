@@ -109,7 +109,7 @@ class CustomNewBankClearance {
 				.cnbc-foot-right {
 					display: flex;
 					flex-direction: column;
-					align-items: flex-end;
+					align-items: left;
 					gap: 8px;
 				}
 
@@ -143,6 +143,98 @@ class CustomNewBankClearance {
 					background: var(--blue);
 					border-color: var(--blue);
 					color: #fff;
+				}
+				.cnbc-footer-center {
+					display: flex;
+					align-items: flex-start;
+					gap: 28px;
+					flex-wrap: wrap;
+				}
+
+				.cnbc-selected-total {
+					line-height: 1.5;
+					text-align: left;
+					color: var(--text2);
+					white-space: nowrap;
+				}
+
+				.cnbc-selected-total-title {
+					font-weight: 700;
+					color: var(--text);
+				}
+				.cnbc-foot {
+					min-height: 54px;
+					display: flex;
+					align-items: center;
+					justify-content: flex-start;
+					gap: 18px;
+					padding: 10px 18px;
+					color: var(--text3);
+					font-size: 12px;
+					background: #fff;
+					white-space: nowrap;
+					overflow-x: auto;
+					overflow-y: hidden;
+				}
+
+				.cnbc-foot-item {
+					display: inline-flex;
+					align-items: center;
+					flex: 0 0 auto;
+				}
+
+				.cnbc-total-line {
+					color: var(--text3);
+				}
+
+				.cnbc-page-size-controls {
+					display: inline-flex;
+					align-items: center;
+					gap: 6px;
+				}
+
+				.cnbc-page-controls {
+					display: inline-flex;
+					align-items: center;
+					gap: 6px;
+					margin-left: 0 !important;
+				}
+
+				.cnbc-page-size-btn {
+					height: 30px;
+					min-width: 44px;
+					border: 1px solid var(--line);
+					border-radius: 7px;
+					background: #fff;
+					color: var(--text2);
+					font-size: 12px;
+					font-family: inherit;
+					cursor: pointer;
+					padding: 0 10px;
+				}
+
+				.cnbc-page-size-btn.on {
+					background: var(--blue);
+					border-color: var(--blue);
+					color: #fff;
+				}
+
+				.cnbc-page-nav-btn {
+					height: 30px;
+					padding: 0 12px;
+				}
+
+				.cnbc-selected-total {
+					display: inline-flex;
+					align-items: center;
+					gap: 8px;
+					color: var(--text2);
+					white-space: nowrap;
+				}
+
+				.cnbc-selected-total-title {
+					font-weight: 700;
+					color: var(--text);
 				}
 				@media(max-width:1200px){.cnbc-filter-grid{grid-template-columns:repeat(2,minmax(190px,1fr))}.cnbc-kpis{grid-template-columns:repeat(2,minmax(180px,1fr))}}@media(max-width:700px){.cnbc{padding:16px 12px}.cnbc-top{display:block}.cnbc-actions{justify-content:flex-start;margin-top:14px}.cnbc-filter-grid{grid-template-columns:1fr}.cnbc-kpis{grid-template-columns:1fr}.cnbc-search{min-width:0;flex:1}.cnbc-toolbar{height:auto;padding:14px;flex-wrap:wrap}.cnbc-bulk{align-items:flex-start}.cnbc-count{margin-left:0}}
 			</style>
@@ -228,18 +320,17 @@ class CustomNewBankClearance {
 					</div>
 
 					<div class="cnbc-foot">
-						<div class="cnbc-foot-left">
-							<span data-area="row_info">Showing 0 entries</span>
-						</div>
+						<span class="cnbc-foot-item" data-area="row_info">Showing 0 entries</span>
 
-						<div class="cnbc-foot-center">
-							<span data-area="totals">Deposit ${this.money(0)} - Withdrawal ${this.money(0)}</span>
-						</div>
+						<span class="cnbc-foot-item cnbc-total-line" data-area="totals">
+							Opening ${this.money(0)} + Deposit ${this.money(0)} - Withdrawal ${this.money(0)} = Reconciled ERP Balance ${this.money(0)}
+						</span>
 
-						<div class="cnbc-foot-right">
-							<div class="cnbc-page-size-controls" data-area="page_size_controls"></div>
-							<div class="cnbc-page-controls" data-area="pagination"></div>
-						</div>
+						<span class="cnbc-foot-item" data-area="selected_totals"></span>
+
+						<span class="cnbc-foot-item cnbc-page-size-controls" data-area="page_size_controls"></span>
+
+						<span class="cnbc-foot-item cnbc-page-controls" data-area="pagination"></span>
 					</div>
 				</div>
 			</div>
@@ -870,6 +961,17 @@ class CustomNewBankClearance {
 		}, 0);
 
 		const reconciled_balance = opening + reconciled_deposit - reconciled_withdrawal;
+		const selected_rows = this.entries.filter((row) => {
+			return this.selected.has(row.id) && !row.is_opening_entry;
+		});
+
+		const selected_deposit = selected_rows.reduce((sum, row) => {
+			return sum + flt(row.deposit);
+		}, 0);
+
+		const selected_withdrawal = selected_rows.reduce((sum, row) => {
+			return sum + flt(row.withdrawal);
+		}, 0);
 
 		const start = filtered_rows.length ? (this.current_page - 1) * this.page_size + 1 : 0;
 		const end = filtered_rows.length ? start + rows.length - 1 : 0;
@@ -881,6 +983,14 @@ class CustomNewBankClearance {
 		this.$("[data-area='totals']").html(
 			`Opening ${this.money(opening)} + Deposit ${this.money(reconciled_deposit)} - Withdrawal ${this.money(reconciled_withdrawal)} = Reconciled ERP Balance ${this.money(reconciled_balance)}`
 		);
+
+		this.$("[data-area='selected_totals']").html(`
+			<span class="cnbc-selected-total">
+				<span class="cnbc-selected-total-title">Total -</span>
+				<span>Deposit: ${this.money(selected_deposit)}</span>
+				<span>Withdrawn: ${this.money(selected_withdrawal)}</span>
+			</span>
+		`);
 
 		this.render_page_size_controls();
 		this.render_pagination(filtered_rows.length);
@@ -915,11 +1025,11 @@ class CustomNewBankClearance {
 		const total_pages = this.total_pages(total_rows);
 
 		this.$("[data-area='pagination']").html(`
-			<button class="cnbc-btn" data-page-action="first" ${this.current_page <= 1 ? "disabled" : ""}>First</button>
-			<button class="cnbc-btn" data-page-action="prev" ${this.current_page <= 1 ? "disabled" : ""}>Previous</button>
+			<button class="cnbc-btn cnbc-page-nav-btn" data-page-action="first" ${this.current_page <= 1 ? "disabled" : ""}>First</button>
+			<button class="cnbc-btn cnbc-page-nav-btn" data-page-action="prev" ${this.current_page <= 1 ? "disabled" : ""}>Previous</button>
 			<span class="cnbc-page-label">${this.current_page} / ${total_pages}</span>
-			<button class="cnbc-btn" data-page-action="next" ${this.current_page >= total_pages ? "disabled" : ""}>Next</button>
-			<button class="cnbc-btn" data-page-action="last" ${this.current_page >= total_pages ? "disabled" : ""}>Last</button>
+			<button class="cnbc-btn cnbc-page-nav-btn" data-page-action="next" ${this.current_page >= total_pages ? "disabled" : ""}>Next</button>
+			<button class="cnbc-btn cnbc-page-nav-btn" data-page-action="last" ${this.current_page >= total_pages ? "disabled" : ""}>Last</button>
 		`);
 	}
 
