@@ -258,6 +258,9 @@ def get_entries(
 	if not from_date or not to_date:
 		frappe.throw("From Date and To Date are required")
 
+	if getdate(to_date) < getdate(from_date):
+		frappe.throw("To Date cannot be before From Date.")
+
 	if not company:
 		company = frappe.db.get_value("Account", account, "company")
 
@@ -345,6 +348,11 @@ def update_gl_clearance_dates(company, account, entries):
 	clearance_date = safe_entries[0].get("clearance_date") or safe_entries[0].get("clearance")
 	if not clearance_date:
 		frappe.throw("Clearance Date is mandatory")
+
+	for row in safe_entries:
+		transaction_date = row.get("transaction_date") or row.get("posting_date") or row.get("date")
+		if transaction_date and getdate(clearance_date) < getdate(transaction_date):
+			frappe.throw("Clearance Date cannot be before transaction date.")
 
 	from bank_clearance_custom.bank_clearance_custom.page.custom_bank_clearance.custom_bank_clearance import (
 		clear_selected_entries,
