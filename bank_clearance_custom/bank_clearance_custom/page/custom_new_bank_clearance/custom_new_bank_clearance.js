@@ -1141,16 +1141,6 @@ class CustomNewBankClearance {
 	}
 
 	async save_clearance_dates(rows) {
-		const invalid_date_row = rows.find((row) => {
-			const clearance_date = this.to_server_date(row.clearance || row.clearance_date || row.date);
-			const transaction_date = this.to_server_date(row.date);
-			return clearance_date && transaction_date && clearance_date < transaction_date;
-		});
-		if (invalid_date_row) {
-			frappe.msgprint(__("Clearance Date cannot be before transaction date."));
-			return;
-		}
-
 		const payload = rows
 			.filter((row) => !row.is_opening_entry)
 			.map((row) => ({
@@ -1160,7 +1150,6 @@ class CustomNewBankClearance {
 				payment_entry: row.voucher_no || row.voucher,
 				reference_no: row.reference_no || row.cheque_no || "",
 				cheque_no: row.cheque_no || row.reference_no || "",
-				transaction_date: row.date || "",
 				posting_date: row.date || "",
 				clearance_date: this.to_server_date(row.clearance || row.clearance_date || row.date),
 				is_opening_entry: row.is_opening_entry ? 1 : 0,

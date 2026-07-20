@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import frappe
 from frappe.utils import flt, add_days, getdate
 import json
@@ -46,6 +48,25 @@ def _as_bool(value):
 	if isinstance(value, str):
 		return value.lower() in {"1", "true", "yes", "on"}
 	return bool(value)
+
+
+def _parse_posting_date(value):
+	if not value:
+		return None
+
+	text = str(value).strip()
+	for date_format in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
+		try:
+			return datetime.strptime(text, date_format).date()
+		except ValueError:
+			pass
+
+	return getdate(value)
+
+
+def _server_date(value):
+	parsed_date = _parse_posting_date(value)
+	return parsed_date.isoformat() if parsed_date else ""
 
 
 def _is_opening_journal_entry(payment_document, payment_entry):
@@ -345,20 +366,34 @@ def update_gl_clearance_dates(company, account, entries):
 	if not safe_entries:
 		frappe.throw("No valid entries selected for reconciliation. Opening row cannot be reconciled.")
 
-	clearance_date = safe_entries[0].get("clearance_date") or safe_entries[0].get("clearance")
-	if not clearance_date:
-		frappe.throw("Clearance Date is mandatory")
+	entries_by_clearance_date = {}
 
 	for row in safe_entries:
-		transaction_date = row.get("transaction_date") or row.get("posting_date") or row.get("date")
-		if transaction_date and getdate(clearance_date) < getdate(transaction_date):
-			frappe.throw("Clearance Date cannot be before transaction date.")
+		clearance_date = row.get("clearance_date") or row.get("clearance")
+		if not clearance_date:
+			frappe.throw("Clearance Date is mandatory")
+
+		posting_date = row.get("posting_date") or row.get("date")
+		parsed_clearance_date = _parse_posting_date(clearance_date)
+		parsed_posting_date = _parse_posting_date(posting_date) if posting_date else None
+
+		if parsed_posting_date and parsed_clearance_date < parsed_posting_date:
+			frappe.throw("Clearance Date cannot be before Posting Date.")
+
+		server_clearance_date = parsed_clearance_date.isoformat()
+		row["clearance_date"] = server_clearance_date
+		entries_by_clearance_date.setdefault(server_clearance_date, []).append(row)
 
 	from bank_clearance_custom.bank_clearance_custom.page.custom_bank_clearance.custom_bank_clearance import (
 		clear_selected_entries,
 	)
 
-	return clear_selected_entries(safe_entries, clearance_date, account)
+	updated = 0
+	for clearance_date, rows in entries_by_clearance_date.items():
+		result = clear_selected_entries(rows, clearance_date, account)
+		updated += result.get("updated", 0) if isinstance(result, dict) else 0
+
+	return {"updated": updated, "message": "{0} entries cleared successfully".format(updated)}
 
 
 @frappe.whitelist()
