@@ -195,11 +195,12 @@ def _get_opening_balance(account, company, bank_account, from_date):
 		select sum(debit) - sum(credit)
 		from `tabGL Entry`
 		where is_cancelled = 0
-			and company = %s
-			and account = %s
-			and posting_date < %s
+			and company = %(company)s
+			and account = %(account)s
+			and posting_date <= %(from_date)s
+			and (posting_date < %(from_date)s or is_opening = 'Yes')
 		""",
-		(company, account, from_date),
+		{"company": company, "account": account, "from_date": from_date},
 	)
 	return flt(balance[0][0]) if balance else 0
 
