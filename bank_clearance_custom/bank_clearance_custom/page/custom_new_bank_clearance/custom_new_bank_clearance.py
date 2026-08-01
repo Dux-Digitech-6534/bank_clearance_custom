@@ -174,20 +174,34 @@ def _get_reconciled_movement_after_opening(account, bank_account, opening_date, 
 	return total
 
 
+# def _get_opening_balance(account, company, bank_account, from_date):
+# 	opening = _get_latest_opening_entry(account, company, from_date)
+
+# 	base_opening = flt(opening.get("amount"))
+# 	opening_date = opening.get("posting_date")
+
+# 	reconciled_movement = _get_reconciled_movement_after_opening(
+# 		account,
+# 		bank_account,
+# 		opening_date,
+# 		from_date,
+# 	)
+
+# 	return base_opening + reconciled_movement
+
 def _get_opening_balance(account, company, bank_account, from_date):
-	opening = _get_latest_opening_entry(account, company, from_date)
-
-	base_opening = flt(opening.get("amount"))
-	opening_date = opening.get("posting_date")
-
-	reconciled_movement = _get_reconciled_movement_after_opening(
-		account,
-		bank_account,
-		opening_date,
-		from_date,
+	balance = frappe.db.sql(
+		"""
+		select sum(debit) - sum(credit)
+		from `tabGL Entry`
+		where is_cancelled = 0
+			and company = %s
+			and account = %s
+			and posting_date < %s
+		""",
+		(company, account, from_date),
 	)
-
-	return base_opening + reconciled_movement
+	return flt(balance[0][0]) if balance else 0
 
 
 def _make_opening_balance_row(account, company, bank_account, from_date):
