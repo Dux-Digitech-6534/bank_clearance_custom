@@ -7,6 +7,9 @@ import json
 from erpnext.accounts.doctype.bank_clearance.bank_clearance import (
 	get_payment_entries_for_bank_clearance,
 )
+from erpnext.accounts.report.general_ledger.general_ledger import (
+    execute as execute_general_ledger,
+)
 
 
 @frappe.whitelist()
@@ -189,20 +192,146 @@ def _get_reconciled_movement_after_opening(account, bank_account, opening_date, 
 
 # 	return base_opening + reconciled_movement
 
-def _get_opening_balance(account, company, bank_account, from_date):
-	balance = frappe.db.sql(
-		"""
-		select sum(debit) - sum(credit)
-		from `tabGL Entry`
-		where is_cancelled = 0
-			and company = %(company)s
-			and account = %(account)s
-			and posting_date <= %(from_date)s
-			and (posting_date < %(from_date)s or is_opening = 'Yes')
-		""",
-		{"company": company, "account": account, "from_date": from_date},
-	)
-	return flt(balance[0][0]) if balance else 0
+# def _get_opening_balance(account, company, bank_account, from_date):
+# 	balance = frappe.db.sql(
+# 		"""
+# 		select sum(debit) - sum(credit)
+# 		from `tabGL Entry`
+# 		where is_cancelled = 0
+# 			and company = %(company)s
+# 			and account = %(account)s
+# 			and posting_date <= %(from_date)s
+# 			and (posting_date < %(from_date)s or is_opening = 'Yes')
+# 		""",
+# 		{"company": company, "account": account, "from_date": from_date},
+# 	)
+# 	return flt(balance[0][0]) if balance else 0
+
+def _get_bank_calculated_opening(account, company, from_date):
+    """
+    Existing Bank Clearance calculation.
+    Only used as fallback if General Ledger report cannot be executed.
+    """
+
+    balance = frappe.db.sql(
+        """
+        select
+            coalesce(sum(debit), 0) - coalesce(sum(credit), 0)
+        from `tabGL Entry`
+        where is_cancelled = 0
+            and company = %(company)s
+            and account = %(account)s
+            and posting_date <= %(from_date)s
+            and (
+                posting_date < %(from_date)s
+                or is_opening = 'Yes'
+            )
+        """,
+        {
+            "company": company,
+            "account": account,
+            "from_date": from_date,
+        },
+    )
+
+    if not balance or balance[0][0] is None:
+        return 0
+
+    return flt(balance[0][0])
+
+
+def _get_gl_report_opening(account, company, from_date, to_date):
+    """
+    Get the Opening Balance exactly from ERPNext General Ledger report logic.
+
+    GL is the source of truth:
+    if GL Opening is 0, this function returns 0.
+    """
+
+    filters = frappe._dict(
+        {
+            "company": company,
+            "from_date": _server_date(from_date),
+            "to_date": _server_date(to_date or from_date),
+
+            # Same selected ledger account
+            "account": [account],
+
+            # Same default behaviour as General Ledger UI
+            "categorize_by": "Categorize by Voucher (Consolidated)",
+            "include_default_book_entries": 1,
+
+            # Keep opening entries inside GL Opening calculation
+            "show_opening_entries": 0,
+            "disable_opening_balance_calculation": 0,
+
+            # Normal GL defaults
+            "show_cancelled_entries": 0,
+            "finance_book": None,
+        }
+    )
+
+    columns, data = execute_general_ledger(filters)
+
+    if not data:
+        return None
+
+    # General Ledger creates Opening as the first summary row.
+    opening_row = data[0]
+
+    opening_debit = flt(opening_row.get("debit"))
+    opening_credit = flt(opening_row.get("credit"))
+
+    return opening_debit - opening_credit
+
+
+def _get_opening_balance(
+    account,
+    company,
+    bank_account,
+    from_date,
+    to_date=None,
+):
+    """
+    Final Opening Balance rule:
+
+    1. Check General Ledger opening.
+    2. If GL returns a value, use it even when value is 0.
+    3. Use old Bank Clearance calculation only if GL calculation fails.
+    """
+
+    fallback_balance = _get_bank_calculated_opening(
+        account,
+        company,
+        from_date,
+    )
+
+    try:
+        gl_balance = _get_gl_report_opening(
+            account,
+            company,
+            from_date,
+            to_date or from_date,
+        )
+
+        # IMPORTANT:
+        # 0 is a valid opening balance.
+        #
+        # Do NOT use:
+        # if gl_balance:
+        #
+        # because 0 would be treated as False.
+        if gl_balance is not None:
+            return flt(gl_balance)
+
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "Bank Clearance - GL Opening Balance",
+        )
+
+    # Only if GL report fails completely
+    return flt(fallback_balance)
 
 
 def _make_opening_balance_row(account, company, bank_account, from_date):
