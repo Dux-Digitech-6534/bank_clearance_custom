@@ -461,7 +461,17 @@ class CustomNewBankClearance {
 
 			if (!row || row.is_opening_entry) return;
 
-			row.clearance = this.to_server_date($(event.currentTarget).val());
+			const picked = this.to_server_date($(event.currentTarget).val());
+
+			// Clearance date posting date se pehle nahi ho sakti — server bhi rokta hai,
+			// par yahan rok dene se user ko turant pata chal jaata hai.
+			if (picked && row.date && picked < row.date) {
+				frappe.msgprint(__("Clearance Date cannot be before Posting Date ({0}).", [this.to_display_date(row.date)]));
+				$(event.currentTarget).val(row.clearance || row.date || "");
+				return;
+			}
+
+			row.clearance = picked;
 
 			if (row.status === "pending" && row.clearance) row.status = "date_set";
 			if (row.status === "date_set" && !row.clearance) row.status = "pending";
@@ -923,7 +933,7 @@ class CustomNewBankClearance {
 				? "-"
 				: row.status === "reconciled"
 					? this.to_display_date(row.clearance)
-					: `<input type="date" class="cnbc-date" data-clearance-date data-id="${row.id}" value="${row.clearance || row.date || ""}">`;
+					: `<input type="date" class="cnbc-date" data-clearance-date data-id="${row.id}" min="${row.date || ""}" value="${row.clearance || row.date || ""}">`;
 
 			const action_html = is_opening
 				? `<span class="cnbc-doc-type">Not for Clearance</span>`
@@ -1069,10 +1079,21 @@ class CustomNewBankClearance {
 
 		if (!rows.length) return frappe.msgprint(__("Selected rows are already reconciled."));
 
-		rows.forEach((row) => {
+		// Jin rows ki posting date bulk date ke baad hai, unhe chhod do — warna
+		// clearance date posting se pehle chali jaati (server waise bhi reject karta).
+		const allowed = rows.filter((row) => !row.date || bulk_date >= row.date);
+		const skipped = rows.length - allowed.length;
+
+		allowed.forEach((row) => {
 			row.clearance = bulk_date;
 			if (row.status === "pending") row.status = "date_set";
 		});
+
+		if (skipped) {
+			frappe.msgprint(
+				__("{0} row(s) skipped — their Posting Date is after {1}.", [skipped, this.to_display_date(bulk_date)])
+			);
+		}
 
 		this.refresh();
 	}

@@ -349,6 +349,21 @@ def clear_selected_entries(entries, clearance_date, account=None):
 		cheque_date = entry.get("cheque_date")
 		if cheque_date and getdate(clearance_date) < getdate(cheque_date):
 			frappe.throw(_("Clearance Date cannot be before Cheque Date for {0}").format(entry.get("voucher_no")))
+
+		# Cheque Date zyadatar entries (JV waghairah) me khaali hota hai, is liye upar
+		# wala check unke liye chalta hi nahi tha aur posting date se pehle ki clearance
+		# date chup-chaap save ho jaati thi. Posting date par bhi wahi rok lagao.
+		voucher_type = entry.get("voucher_type") or entry.get("payment_document")
+		voucher_no = entry.get("voucher_no") or entry.get("payment_entry") or entry.get("voucher")
+		posting_date = entry.get("posting_date") or entry.get("date")
+		if not posting_date and voucher_type and voucher_no:
+			posting_date = frappe.db.get_value(voucher_type, voucher_no, "posting_date")
+		if posting_date and getdate(clearance_date) < getdate(posting_date):
+			frappe.throw(
+				_("Clearance Date {0} cannot be before Posting Date {1} for {2}").format(
+					clearance_date, posting_date, voucher_no
+				)
+			)
 		if _set_clearance_date(entry, clearance_date, account):
 			updated += 1
 
